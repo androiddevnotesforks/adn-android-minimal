@@ -1,1 +1,1 @@
-# ADN Minimal
+# ADN Android Minimal
