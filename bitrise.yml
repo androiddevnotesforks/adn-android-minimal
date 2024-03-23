@@ -1,7 +1,26 @@
----
-format_version: '13'
+format_version: "13"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: android
+app:
+  envs:
+  - PROJECT_LOCATION: .
+    opts:
+      is_expand: false
+  - MODULE: app
+    opts:
+      is_expand: false
+  - VARIANT: debug
+    opts:
+      is_expand: false
+meta:
+  bitrise.io:
+    machine_type_id: standard
+    stack: linux-docker-android-22.04
+trigger_map:
+- workflow: minimal_flow
+  push_branch: main
+- workflow: minimal_flow
+  pull_request_source_branch: '*'
 workflows:
   build_apk:
     summary: Run your Android unit tests and create an APK file to install your app
@@ -13,28 +32,28 @@ workflows:
     - git-clone@8: {}
     - set-java-version@1:
         inputs:
-        - set_java_version: '17'
+        - set_java_version: "17"
     - install-missing-android-tools@3:
         inputs:
-        - gradlew_path: "$PROJECT_LOCATION/gradlew"
+        - gradlew_path: $PROJECT_LOCATION/gradlew
     - change-android-versioncode-and-versionname@1:
         inputs:
-        - build_gradle_path: "$PROJECT_LOCATION/$MODULE/build.gradle.kts"
+        - build_gradle_path: $PROJECT_LOCATION/$MODULE/build.gradle.kts
     - android-lint@0:
         inputs:
-        - project_location: "$PROJECT_LOCATION"
-        - variant: "$VARIANT"
+        - project_location: $PROJECT_LOCATION
+        - variant: $VARIANT
         - cache_level: none
     - android-unit-test@1:
         inputs:
-        - project_location: "$PROJECT_LOCATION"
-        - variant: "$VARIANT"
+        - project_location: $PROJECT_LOCATION
+        - variant: $VARIANT
         - cache_level: none
     - android-build@1:
         inputs:
-        - project_location: "$PROJECT_LOCATION"
-        - module: "$MODULE"
-        - variant: "$VARIANT"
+        - project_location: $PROJECT_LOCATION
+        - module: $MODULE
+        - variant: $VARIANT
         - cache_level: none
     - sign-apk@1:
         run_if: '{{getenv "BITRISEIO_ANDROID_KEYSTORE_URL" | ne ""}}'
@@ -47,9 +66,11 @@ workflows:
       lint and unit tests, build the project's APK file and save it.
     steps:
     - git-clone@8: {}
+    - install-missing-android-tools@3: {}
+    - android-lint@0: {}
     - slack@4:
         inputs:
-        - webhook_url: "$SLACK_WEBHOOK_URL"
+        - webhook_url: $SLACK_WEBHOOK_URL
   run_tests:
     summary: Run your Android unit tests and get the test report.
     description: The workflow will first clone your Git repository, cache your Gradle
@@ -60,31 +81,11 @@ workflows:
     - restore-gradle-cache@1: {}
     - install-missing-android-tools@3:
         inputs:
-        - gradlew_path: "$PROJECT_LOCATION/gradlew"
+        - gradlew_path: $PROJECT_LOCATION/gradlew
     - android-unit-test@1:
         inputs:
-        - project_location: "$PROJECT_LOCATION"
-        - variant: "$VARIANT"
+        - project_location: $PROJECT_LOCATION
+        - variant: $VARIANT
         - cache_level: none
     - save-gradle-cache@1: {}
     - deploy-to-bitrise-io@2: {}
-meta:
-  bitrise.io:
-    stack: linux-docker-android-22.04
-    machine_type_id: standard
-app:
-  envs:
-  - opts:
-      is_expand: false
-    PROJECT_LOCATION: "."
-  - opts:
-      is_expand: false
-    MODULE: app
-  - opts:
-      is_expand: false
-    VARIANT: debug
-trigger_map:
-- push_branch: main
-  workflow: run_tests
-- pull_request_source_branch: "*"
-  workflow: minimal_flow
